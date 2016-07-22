@@ -1,0 +1,8 @@
+[package]
+name = "hellogl"
+version = "0.1.0"
+authors = ["Mateu Adsuara <mateuadsuara@gmail.com>"]
+
+[dependencies]
+glium = "*"
+image = "*"
