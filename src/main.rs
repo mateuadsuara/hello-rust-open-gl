@@ -5,7 +5,7 @@ use glium::{DisplayBuild, Surface, Program, VertexBuffer};
 use glium::index::{PrimitiveType, NoIndices};
 use glium::uniforms::{EmptyUniforms};
 use glium::backend::glutin_backend::{GlutinFacade};
-use glium::glutin::{Event, WindowBuilder};
+use glium::glutin::{WindowBuilder, Event, ElementState, VirtualKeyCode};
 
 fn main() {
     let display = create_display();
@@ -21,10 +21,7 @@ fn main() {
 
         for ev in display.poll_events() {
             match ev {
-                Event::Closed => {
-                    println!("one");
-                    return;
-                },
+                Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Escape)) => return,
                 _ => ()
             }
         }
@@ -70,12 +67,16 @@ fn draw(display: &GlutinFacade, shape: &Vec<Vertex>) {
         }
     "#;
 
-    let vertex_buffer = VertexBuffer::new(display, shape).unwrap();
-    let indices = NoIndices(PrimitiveType::TrianglesList);
-    let program = Program::from_source(display, vertex_shader_src, fragment_shader_src, None).unwrap();
-
     let mut frame = display.draw();
     frame.clear_color(0.0, 0.0, 0.0, 0.0);
-    frame.draw(&vertex_buffer, &indices, &program, &EmptyUniforms, &Default::default()).unwrap();
+
+    frame.draw(
+        &VertexBuffer::new(display, shape).unwrap(),
+        &NoIndices(PrimitiveType::TrianglesList),
+        &Program::from_source(display, vertex_shader_src, fragment_shader_src, None).unwrap(),
+        &EmptyUniforms,
+        &Default::default()
+    ).unwrap();
+
     frame.finish().unwrap();
 }
