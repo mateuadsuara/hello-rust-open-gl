@@ -3,7 +3,6 @@ extern crate glium;
 
 use glium::{DisplayBuild, Surface, Program, VertexBuffer};
 use glium::index::{PrimitiveType, NoIndices};
-use glium::uniforms::{EmptyUniforms};
 use glium::backend::glutin_backend::{GlutinFacade};
 use glium::glutin::{WindowBuilder, Event, ElementState, VirtualKeyCode};
 
@@ -16,8 +15,10 @@ fn main() {
         vec2( 0.5, -0.25)
     ];
 
+    let mut offset: f32 = -0.5;
     loop {
-        draw(&display, &shape);
+        offset = update_offset(offset);
+        draw(&display, &shape, offset);
 
         for ev in display.poll_events() {
             match ev {
@@ -26,6 +27,17 @@ fn main() {
             }
         }
     }
+}
+
+fn update_offset(offset: f32) -> f32 {
+    let mut t: f32 = offset;
+
+    t += 0.0002;
+    if t > 0.5 {
+        t = -0.5;
+    }
+
+    return t;
 }
 
 #[derive(Copy, Clone)]
@@ -46,14 +58,15 @@ fn create_display() -> GlutinFacade {
         .build_glium().unwrap();
 }
 
-fn draw(display: &GlutinFacade, shape: &Vec<Vertex>) {
+fn draw(display: &GlutinFacade, shape: &Vec<Vertex>, offset: f32) {
     let vertex_shader_src = r#"
         #version 140
 
+        uniform float offset;
         in vec2 position;
 
         void main() {
-            gl_Position = vec4(position, 0.0, 1.0);
+            gl_Position = vec4(position.x + offset, position.y, 0.0, 1.0);
         }
     "#;
 
@@ -74,7 +87,7 @@ fn draw(display: &GlutinFacade, shape: &Vec<Vertex>) {
         &VertexBuffer::new(display, shape).unwrap(),
         &NoIndices(PrimitiveType::TrianglesList),
         &Program::from_source(display, vertex_shader_src, fragment_shader_src, None).unwrap(),
-        &EmptyUniforms,
+        &uniform! {offset: offset},
         &Default::default()
     ).unwrap();
 
