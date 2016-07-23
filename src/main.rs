@@ -1,16 +1,21 @@
 #[macro_use]
-extern crate glium;
 
+extern crate glium;
 use glium::{DisplayBuild, Surface, Program, VertexBuffer, IndexBuffer};
 use glium::index::{PrimitiveType};
 use glium::backend::glutin_backend::{GlutinFacade};
 use glium::glutin::{WindowBuilder, Event, ElementState, VirtualKeyCode};
 
+extern crate time;
+use time::{Timespec, Duration};
+
 fn main() {
     let display = create_display();
+    let start_time = time::get_time();
 
     loop {
-        draw(&display, &cube(), 0.0);
+        let run_time = time::get_time() - start_time;
+        draw(&display, &cube(), &run_time);
 
         for ev in display.poll_events() {
             match ev {
@@ -35,8 +40,8 @@ fn plane() -> Shape {
             vec3( 1.0, 1.0, 0.0),
         ],
         indices: vec![
-            0, 1, 2,
-            1, 2, 3
+            1, 2, 3,
+            2, 3, 4
         ]
     };
 }
@@ -55,17 +60,17 @@ fn cube() -> Shape {
         ],
         indices: vec![
             1,7,5,
-            1,3,7, 
-            1,4,3, 
-            1,2,4, 
-            3,8,7, 
-            3,4,8, 
-            5,7,8, 
-            5,8,6, 
-            1,5,6, 
-            1,6,2, 
-            2,6,8, 
-            2,8,4, 
+            1,3,7,
+            1,4,3,
+            1,2,4,
+            3,8,7,
+            3,4,8,
+            5,7,8,
+            5,8,6,
+            1,5,6,
+            1,6,2,
+            2,6,8,
+            2,8,4,
         ]
     };
 }
@@ -87,15 +92,15 @@ fn create_display() -> GlutinFacade {
         .build_glium().unwrap();
 }
 
-fn draw(display: &GlutinFacade, shape: &Shape, offset: f32) {
+fn draw(display: &GlutinFacade, shape: &Shape, run_time: &Duration) {
     let vertex_shader_src = r#"
         #version 140
 
-        uniform float offset;
         in vec3 position;
+        uniform mat4 matrix;
 
         void main() {
-            gl_Position = vec4(position.x + offset, position.y, 0.0, 1.0);
+            gl_Position = matrix * vec4(position, 1.0);
         }
     "#;
 
@@ -112,11 +117,20 @@ fn draw(display: &GlutinFacade, shape: &Shape, offset: f32) {
     let mut frame = display.draw();
     frame.clear_color(0.0, 0.0, 0.0, 0.0);
 
+    let offset = ((run_time.num_milliseconds() as f32) / 1000.0) % 1.0;
+
     frame.draw(
         &VertexBuffer::new(display, &shape.vertices).unwrap(),
-        &IndexBuffer::new(display, PrimitiveType::TrianglesList, &shape.indices).unwrap(),
+        &IndexBuffer::new(display, PrimitiveType::TrianglesList, &shape.indices.iter().map(|&i| i - 1).collect::<Vec<_>>()).unwrap(),
         &Program::from_source(display, vertex_shader_src, fragment_shader_src, None).unwrap(),
-        &uniform! {offset: offset},
+        &uniform! {
+            matrix: [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [offset, 0.0, 0.0, 1.0f32],
+            ]
+        },
         &Default::default()
     ).unwrap();
 
