@@ -1,20 +1,24 @@
+extern crate cgmath;
+use self::cgmath::{Matrix4};
+
 extern crate std;
 use self::std::f32::consts::{PI};
 
 pub type Matrix = [[f32; 4]; 4];
+pub type ModelTransformation = Matrix4<f32>;
 
 pub struct Matrices {
 }
 
 impl Matrices {
-    //pub fn id() -> Matrix {
-    //    [
-    //        [1.0, 0.0, 0.0, 0.0],
-    //        [0.0, 1.0, 0.0, 0.0],
-    //        [0.0, 0.0, 1.0, 0.0],
-    //        [0.0, 0.0, 0.0, 1.0f32],
-    //    ]
-    //}
+    pub fn id() -> Matrix {
+        Matrix4::into(Matrix4::from([
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0f32],
+        ]))
+    }
 
     pub fn view(view: &View) -> Matrix {
         let position = view.position;
@@ -101,7 +105,7 @@ impl View {
         View {position: [0.0, 0.0, 0.0], direction: [0.0, 0.0, 0.0], up: [0.0, 0.0, 0.0]}
     }
 
-    pub fn combine(&self, b: &View) -> View {
+    pub fn add(&self, b: &View) -> View {
         View {
             position: [self.position[0] + b.position[0], self.position[1] + b.position[1], self.position[2] + b.position[2]],
             direction: [self.direction[0] + b.direction[0], self.direction[1] + b.direction[1], self.direction[2] + b.direction[2]],
