@@ -8,6 +8,7 @@ use glium::glutin::{WindowBuilder, Event};
 use glium::glutin::ElementState::*;
 use glium::glutin::VirtualKeyCode::*;
 
+use std::f32::consts::{PI};
 
 mod time_measure;
 use time_measure::*;
@@ -92,7 +93,8 @@ fn main() {
     let start_time = TimeMeasure::start();
     let object = cube();
 
-    let mut view = View::new([3.0, 0.0, -1.0], [-2.0, 0.0, 1.0], [0.0, 1.0, 0.0]);
+    let mut view = View::new(
+        [4., 0., -1.], [-2., 0., 1.], [0., 1., 0.]);
 
     loop {
         match poll_action(&display) {
@@ -100,7 +102,12 @@ fn main() {
             Action::MoveView { delta: d } => view = view.add(&d),
         }
 
-        let transformation = Matrices::rotate(start_time.end().period(1.0));
+        let t = start_time.end();
+        let transformation = Mat4::new()
+            .scale([(t.period(3.) * PI).sin() * 3., 1., 1.])
+            .rotate((t.period(6.) * PI * 2.).sin(), [1., 0., 0.])
+            .translate([0., -0.5, -0.5])
+            .end();
         draw(&display, (&object, &transformation), &view);
     }
 }
@@ -117,12 +124,12 @@ fn poll_action(display: &GlutinFacade) -> Action {
     for ev in display.poll_events() {
         match ev {
             Event::KeyboardInput(Pressed, _, Some(Escape)) => return Action::Quit,
-            Event::KeyboardInput(Pressed, _, Some(D)) => delta_view.position[2] += 1.0,
-            Event::KeyboardInput(Pressed, _, Some(A)) => delta_view.position[2] -= 1.0,
-            Event::KeyboardInput(Pressed, _, Some(W)) => delta_view.position[1] += 1.0,
-            Event::KeyboardInput(Pressed, _, Some(S)) => delta_view.position[1] -= 1.0,
-            Event::KeyboardInput(Pressed, _, Some(E)) => delta_view.position[0] -= 1.0,
-            Event::KeyboardInput(Pressed, _, Some(Q)) => delta_view.position[0] += 1.0,
+            Event::KeyboardInput(Pressed, _, Some(D)) => delta_view.position[2] += 1.,
+            Event::KeyboardInput(Pressed, _, Some(A)) => delta_view.position[2] -= 1.,
+            Event::KeyboardInput(Pressed, _, Some(W)) => delta_view.position[1] += 1.,
+            Event::KeyboardInput(Pressed, _, Some(S)) => delta_view.position[1] -= 1.,
+            Event::KeyboardInput(Pressed, _, Some(E)) => delta_view.position[0] -= 1.,
+            Event::KeyboardInput(Pressed, _, Some(Q)) => delta_view.position[0] += 1.,
             _ => ()
         }
     }
@@ -161,21 +168,22 @@ fn draw(display: &GlutinFacade, model: (&Object, &Matrix), view: &View) {
         out vec4 color;
 
         void main() {
-            color = vec4(1.0, 0.0, 0.0, 1.0);
+            color = vec4(1.0, 1.0, 1.0, 1.0);
         }
     "#;
 
     let mut frame = display.draw();
     let dimensions = frame.get_dimensions();
+    let indices = object.indices.iter().map(|&i| i - 1).collect::<Vec<_>>();
 
-    frame.clear_color(0.0, 0.0, 0.0, 0.0);
+    frame.clear_color(0., 0., 0., 0.);
 
     frame.draw(
         (
             &VertexBuffer::new(display, &object.vertices).unwrap(),
             &VertexBuffer::new(display, &object.normals).unwrap()
         ),
-        &IndexBuffer::new(display, PrimitiveType::TrianglesList, &object.indices.iter().map(|&i| i - 1).collect::<Vec<_>>()).unwrap(),
+        &IndexBuffer::new(display, PrimitiveType::TrianglesList, &indices).unwrap(),
         &Program::from_source(display, vertex_shader_src, fragment_shader_src, None).unwrap(),
         &uniform! {
             view: Matrices::view(view),

@@ -7,19 +7,130 @@ use self::std::f32::consts::{PI};
 pub type Matrix = [[f32; 4]; 4];
 pub type ModelTransformation = Matrix4<f32>;
 
+pub struct Mat4 {
+    elements: [[f32; 4]; 4]
+}
+
+impl Mat4 {
+    pub fn id() -> Mat4 {
+        Mat4 {
+            elements: [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0f32],
+            ]
+        }
+    }
+
+    pub fn new() -> Mat4 {
+        Mat4::id()
+    }
+
+    pub fn scale(&self, vector: [f32; 3]) -> Mat4 {
+        let this = self.elements;
+        let x = vector[0];
+        let y = vector[1];
+        let z = vector[2];
+        Mat4 {
+            elements: [
+                [this[0][0] * x, this[0][1] * x, this[0][2] * x, this[0][3] * x],
+                [this[1][0] * y, this[1][1] * y, this[1][2] * y, this[1][3] * y],
+                [this[2][0] * z, this[2][1] * z, this[2][2] * z, this[2][3] * z],
+                [this[3][0],     this[3][1]    , this[3][2]    , this[3][3]    ],
+            ]
+        }
+    }
+
+    pub fn translate(&self, vector: [f32; 3]) -> Mat4 {
+        let this = self.elements;
+        let x = vector[0];
+        let y = vector[1];
+        let z = vector[2];
+        Mat4 {
+            elements: [
+                [this[0][0], this[0][1], this[0][2], this[0][3]],
+                [this[1][0], this[1][1], this[1][2], this[1][3]],
+                [this[2][0], this[2][1], this[2][2], this[2][3]],
+                [
+                    this[0][0] * x + this[1][0] * y + this[2][0] * z + this[3][0],
+                    this[0][1] * x + this[1][1] * y + this[2][1] * z + this[3][1],
+                    this[0][2] * x + this[1][2] * y + this[2][2] * z + this[3][2],
+                    this[0][3] * x + this[1][3] * y + this[2][3] * z + this[3][3],
+                ]
+            ]
+        }
+    }
+
+    pub fn rotate(&self, percentage: f32, vector: [f32; 3]) -> Mat4 {
+        Mat4::rotate_angle(self, percentage * PI * 2., vector)
+    }
+
+    pub fn rotate_angle(&self, angle: f32, vector: [f32; 3]) -> Mat4 {
+        let this = self.elements;
+        let _x = vector[0];
+        let _y = vector[1];
+        let _z = vector[2];
+
+        let len = 1. / (_x * _x + _y * _y + _z * _z).sqrt() as f32;
+
+        let x = _x * len;
+        let y = _y * len;
+        let z = _z * len;
+
+        let s = angle.sin();
+        let c = angle.cos();
+        let t = 1. - c;
+
+        let b00 = x * x * t + c;
+        let b01 = y * x * t + z * s;
+        let b02 = z * x * t - y * s;
+        let b10 = x * y * t - z * s;
+        let b11 = y * y * t + c;
+        let b12 = z * y * t + x * s;
+        let b20 = x * z * t + y * s;
+        let b21 = y * z * t - x * s;
+        let b22 = z * z * t + c;
+
+        Mat4 {
+            elements: [
+                [
+                    this[0][0] * b00 + this[1][0] * b01 + this[2][0] * b02,
+                    this[0][1] * b00 + this[1][1] * b01 + this[2][1] * b02,
+                    this[0][2] * b00 + this[1][2] * b01 + this[2][2] * b02,
+                    this[0][3] * b00 + this[1][3] * b01 + this[2][3] * b02,
+                ],
+                [
+                    this[0][0] * b10 + this[1][0] * b11 + this[2][0] * b12,
+                    this[0][1] * b10 + this[1][1] * b11 + this[2][1] * b12,
+                    this[0][2] * b10 + this[1][2] * b11 + this[2][2] * b12,
+                    this[0][3] * b10 + this[1][3] * b11 + this[2][3] * b12,
+                ],
+                [
+                    this[0][0] * b20 + this[1][0] * b21 + this[2][0] * b22,
+                    this[0][1] * b20 + this[1][1] * b21 + this[2][1] * b22,
+                    this[0][2] * b20 + this[1][2] * b21 + this[2][2] * b22,
+                    this[0][3] * b20 + this[1][3] * b21 + this[2][3] * b22,
+                ],
+                [
+                    this[3][0],
+                    this[3][1],
+                    this[3][2],
+                    this[3][3]
+                ],
+            ]
+        }
+    }
+
+    pub fn end(&self) -> [[f32; 4]; 4] {
+        self.elements
+    }
+}
+
 pub struct Matrices {
 }
 
 impl Matrices {
-    pub fn id() -> Matrix {
-        Matrix4::into(Matrix4::from([
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0f32],
-        ]))
-    }
-
     pub fn view(view: &View) -> Matrix {
         let position = view.position;
         let direction = view.direction;
@@ -73,16 +184,6 @@ impl Matrices {
             [         0.0         ,     f ,              0.0              ,   0.0],
             [         0.0         ,    0.0,  (zfar+znear)/(zfar-znear)    ,   1.0],
             [         0.0         ,    0.0, -(2.0*zfar*znear)/(zfar-znear),   0.0],
-        ]
-    }
-
-    pub fn rotate(percentage: f32) -> Matrix {
-        let t = percentage * PI * 2.0;
-        [
-            [ t.cos(), t.sin(), 0.0, 0.0],
-            [-t.sin(), t.cos(), 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0f32],
         ]
     }
 }
