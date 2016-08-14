@@ -16,6 +16,8 @@ use time_measure::*;
 mod matrices;
 use matrices::*;
 
+mod counter;
+use counter::ConsecutiveCounter;
 
 #[derive(Copy, Clone)]
 struct Vertex {
@@ -141,7 +143,7 @@ fn cube() -> Object {
         -0.5, 0.5, -0.5
         ],
         vec![
-        0, 1, 2, 0, 2, 3, 
+        0, 1, 2, 0, 2, 3,
         1, 5, 6, 1, 6, 2,
         3, 2, 5, 3, 6, 7,
         4, 6, 5, 4, 7, 6,
@@ -161,13 +163,19 @@ fn main() {
     let mut view = View::new(
         [4., 0., -1.], [-2., 0., 1.], [0., 1., 0.]);
 
+    let mut frames = ConsecutiveCounter::new();
     loop {
+        let t = start_time.end();
+
+        frames = frames.add_for(t.current_second(), 1);
+        frames.completed_count().map(|(second, amount)|
+            println!("{} frames on second {}.", amount, second));
+
         match poll_action(&display) {
             Action::Quit => return,
             Action::MoveView { delta: d } => view = view.add(&d),
         }
 
-        let t = start_time.end();
         let transformation = Mat4::new()
             .scale([(t.period(3.) * PI).sin() * 3., 1., 1.])
             .rotate((t.period(6.) * PI * 2.).sin(), [1., 0., 0.])
@@ -238,7 +246,7 @@ fn draw(display: &GlutinFacade, model: (&Object, &Matrix), view: &View) {
     "#;
 
     let mut frame = display.draw();
-    let dimensions = frame.get_dimensions();
+    let perspective = Matrices::perspective(frame.get_dimensions());
 
     frame.clear_color(0., 0., 0., 0.);
 
@@ -252,7 +260,7 @@ fn draw(display: &GlutinFacade, model: (&Object, &Matrix), view: &View) {
         &uniform! {
             view: Matrices::view(view),
             model: *transformation,
-            perspective: Matrices::perspective(dimensions)
+            perspective: perspective
         },
         &Default::default()
     ).unwrap();
